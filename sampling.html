@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Risk-Based Sampling Calculator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 30px;
+      max-width: 600px;
+      margin: auto;
+    }
+    input, select {
+      width: 100%;
+      padding: 8px;
+      margin: 10px 0;
+    }
+    button {
+      padding: 10px 15px;
+      background-color: #2e86de;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    .result {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h2>Risk-Based Sampling Calculator</h2>
+  <label for="testType">Test Type:</label>
+  <select id="testType">
+    <option value="control">Internal Control</option>
+    <option value="details">Test of Details</option>
+  </select>
+
+  <label for="risk">Risk Level:</label>
+  <select id="risk">
+    <option value="high">High</option>
+    <option value="medium">Medium</option>
+    <option value="low">Low</option>
+  </select>
+
+  <label for="population">Population Size:</label>
+  <input type="number" id="population" min="1" />
+
+  <label for="tolerableError">Tolerable Error (%):</label>
+  <input type="number" id="tolerableError" step="0.01" min="0" max="100" />
+
+  <label for="expectedError">Expected Error (%):</label>
+  <input type="number" id="expectedError" step="0.01" min="0" max="100" />
+
+  <button onclick="calculateSample()">Calculate Sample Size</button>
+
+  <div class="result" id="result"></div>
+
+  <script>
+    function getConfidenceFactor(risk) {
+      switch (risk) {
+        case 'high': return 2.0; // Higher risk -> higher confidence
+        case 'medium': return 1.645;
+        case 'low': return 1.28;
+        default: return 1.645;
+      }
+    }
+
+    function calculateSample() {
+      const testType = document.getElementById("testType").value;
+      const risk = document.getElementById("risk").value;
+      const population = parseInt(document.getElementById("population").value);
+      const tolerableError = parseFloat(document.getElementById("tolerableError").value) / 100;
+      const expectedError = parseFloat(document.getElementById("expectedError").value) / 100;
+
+      const confidenceFactor = getConfidenceFactor(risk);
+
+      if (expectedError >= tolerableError) {
+        document.getElementById("result").innerText = "Expected error must be less than tolerable error.";
+        return;
+      }
+
+      // Simplified sample size formula for attributes (controls)
+      // n = (Z^2 * p * (1 - p)) / (E^2)
+      let sampleSize;
+      if (testType === "control") {
+        const p = expectedError;
+        const e = tolerableError - expectedError;
+        sampleSize = (Math.pow(confidenceFactor, 2) * p * (1 - p)) / Math.pow(e, 2);
+      } else {
+        // For test of details, use ratio estimation or monetary unit sampling
+        // n = (Z^2 * σ^2) / E^2 - simplified
+        const stdDevEstimate = population * expectedError; // rough
+        const errorMargin = tolerableError * population;
+        sampleSize = (Math.pow(confidenceFactor * stdDevEstimate / errorMargin, 2));
+      }
+
+      sampleSize = Math.min(Math.ceil(sampleSize), population);
+
+      document.getElementById("result").innerText = `Recommended Sample Size: ${sampleSize}`;
+    }
+  </script>
+</body>
+</html>
+
